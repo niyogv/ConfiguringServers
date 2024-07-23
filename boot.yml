@@ -1,0 +1,69 @@
+---
+- name: Copying docker compose file to boot node
+  hosts: boot
+  become: yes
+  vars:
+    user_name: root
+    user: zenz
+    base_dir: /home/{{ user }}
+    docker_compose_boot_src: /Users/niyogv/IdeaProjects/Sephorum setup/ansible/docker-compose-boot.yml
+    docker_compose_boot_dest: "{{ base_dir }}/stack/sephorum/docker-compose-boot.yml"
+
+  tasks:
+    - name: Update apt package list
+      apt:
+        update_cache: yes
+
+    - name: Upgrade all apt packages
+      apt:
+        upgrade: dist
+
+    - name: Install gcc
+      apt:
+        name:
+          - gcc
+          - make
+        state: present
+        update_cache: yes
+
+    - name: Create base directories
+      file:
+        path: "{{ base_dir }}/{{ item }}"
+        state: directory
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: '0755'
+      loop:
+        - shared
+        - download
+        - stack
+
+    - name: Download Docker installation script
+      become_user: "{{ user_name }}"
+      shell: |
+        curl -fsSL -o {{ base_dir }}/download/docker.sh https://get.docker.com
+      args:
+        creates: "{{ base_dir }}/download1/docker.sh"
+
+    - name: Run Docker installation script
+      become_user: "{{ user_name }}"
+      shell: |
+        sh {{ base_dir }}/download/docker.sh
+      args:
+        creates: /usr/bin/docker
+
+    - name: create sephorum directory under stack1
+      file:
+        path: "{{base_dir}}/stack/sephorum"
+        state: directory
+        owner: "{{ user}}"
+        group: "{{ user}}"
+        mode: '0755'
+
+    - name: Copy Docker Compose boot file to sephorum
+      copy:
+        src: "{{ docker_compose_boot_src }}"
+        dest: "{{ docker_compose_boot_dest }}"
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: '0644'

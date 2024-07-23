@@ -1,0 +1,101 @@
+---
+- name: Create directories and copy Docker Compose file
+  hosts: servers
+  become: yes
+  vars:
+    user_name: root
+    user: zenz
+    base_dir: /home/{{ user }}
+    docker_compose_dir_src: /Users/niyogv/IdeaProjects/Sephorum setup/ansible/docker-compose-dir.yml
+    docker_compose_pod_src: /Users/niyogv/IdeaProjects/Sephorum setup/ansible/docker-compose-pod.yml
+    docker_compose_acc_src: /Users/niyogv/IdeaProjects/Sephorum setup/ansible/accounts.json
+    docker_compose_dir_dest: "{{ base_dir }}/stack/makedir/docker-compose-dir.yml"
+    docker_compose_pod_dest: "{{ base_dir }}/stack/sephorum/docker-compose-pod.yml"
+    docker_compose_acc_dest: "{{ base_dir }}/shared/sephorum/accounts.json"
+  tasks:
+    - name: Update apt package list
+      apt:
+          update_cache: yes
+
+    - name: Upgrade all apt packages
+      apt:
+          upgrade: dist
+
+    - name: Install gcc
+      apt:
+        name:
+            - gcc
+            - make
+        state: present
+        update_cache: yes
+
+    - name: Create base directories
+      file:
+        path: "{{ base_dir }}/{{ item }}"
+        state: directory
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: '0755'
+      loop:
+        - shared
+        - download
+        - stack
+
+    - name: Download Docker installation script
+      become_user: "{{ user_name }}"
+      shell: |
+        curl -fsSL -o {{ base_dir }}/download/docker.sh https://get.docker.com
+      args:
+        creates: "{{ base_dir }}/download1/docker.sh"
+
+    - name: Run Docker installation script
+      become_user: "{{ user_name }}"
+      shell: |
+        sh {{ base_dir }}/download/docker.sh
+      args:
+        creates: /usr/bin/docker
+
+    - name: Create makedir under stack
+      file:
+        path: "{{ base_dir }}/stack/makedir"
+        state: directory
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: '0755'
+
+    - name: create sephorum directory under stack
+      file:
+        path: "{{base_dir}}/stack/sephorum"
+        state: directory
+        owner: "{{ user}}"
+        group: "{{ user}}"
+        mode: '0755'
+
+    - name: Copy Docker Compose dir file to stack/makedir
+      copy:
+        src: "{{ docker_compose_dir_src }}"
+        dest: "{{ docker_compose_dir_dest }}"
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: '0644'
+
+    - name: Copy Docker compose pod file to stack/sephorum
+      copy:
+        src: "{{ docker_compose_pod_src }}"
+        dest: "{{docker_compose_pod_dest }}"
+        owner: "{{ user_name }}"
+        group: "{{ user_name }}"
+        mode: '0644'
+
+    - name: Execute docker compose with docker-compose-dir.yml to create instance.json file and test directory
+      shell: docker compose -f docker-compose-dir.yml up -d
+      args:
+        chdir: "{{ base_dir }}/stack/makedir"
+
+    - name: Copy acconts file to shared/sephorum
+      copy:
+        src: "{{ docker_compose_dir_src }}"
+        dest: "{{ docker_compose_dir_dest }}"
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: '0644'

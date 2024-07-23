@@ -1,7 +1,7 @@
 # ConfiguringServers
 This repo is an example of how to configure the servers using ansible software. Using this software we can install the dependencies, execute the commands, run scripts.
 
-# Abount ansible
+# About ansible
 Ansible is an open source IT automation engine that automates provisioning, configuration management, application deployment, orchestration, and many other IT processes. It is free to use, and the project benefits from the experience and intelligence of its thousands of contributors.
 
 # How it works
